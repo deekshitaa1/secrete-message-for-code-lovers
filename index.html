@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Valentine — I Love Coding (white popup)</title>
+<style>
+  :root{
+    --bg1:#130423; --bg2:#2b0326;
+    --accent:#ff4d6d; --muted:rgba(0,0,0,0.08);
+    --size:120px; --gap:14px;
+    --popup-w: min(560px, 92vw);
+    --popup-bg: #ffffff;
+    --popup-text: #0b1220;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;color:#fff;background:
+    radial-gradient(800px 400px at 10% 10%, rgba(255,77,109,0.06), transparent),
+    linear-gradient(180deg,var(--bg1),var(--bg2));}
+  .wrap{min-height:100vh;display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center;padding:28px;}
+
+  header{display:flex;align-items:center;gap:12px}
+  h1{margin:0;font-size:1.45rem;letter-spacing:0.6px}
+  p.lead{margin:0;color:rgba(255,255,255,0.75);font-size:0.95rem}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .btn{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+    border:1px solid rgba(255,255,255,0.06); padding:10px 14px;border-radius:12px;color:#fff;cursor:pointer;font-weight:600;
+    box-shadow: 0 10px 30px rgba(17,10,20,0.45);
+  }
+  .btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,0.05)}
+  .btn:active{transform:translateY(1px)}
+
+  .grid{
+    margin-top:18px;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--size), 1fr));
+    gap:var(--gap);
+    width:100%;
+    max-width:920px;
+  }
+
+  .box{
+    height:var(--size);
+    border-radius:14px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.07));
+    border:1px solid rgba(255,255,255,0.04);
+    display:flex;align-items:center;justify-content:center;position:relative;overflow:visible;
+    cursor:pointer;user-select:none;padding:8px;
+    transition:transform 280ms cubic-bezier(.2,.9,.25,1), box-shadow 200ms;
+    outline: none; z-index:1;
+  }
+  .box:focus { box-shadow: 0 6px 18px rgba(255,77,109,0.12); transform:translateY(-6px) scale(1.02) }
+  .emoji{font-size:34px; transform:translateZ(0); transition: transform 300ms;}
+  .box.open{ transform: translateY(-6px) scale(1.02); box-shadow: 0 22px 50px rgba(255,77,109,0.12); z-index: 5 }
+  .label{position:absolute;bottom:10px;left:12px;font-size:0.82rem;color:rgba(255,255,255,0.75)}
+
+  .small-hint{ position:absolute; top:8px; right:8px; font-size:0.72rem; color:rgba(255,255,255,0.5) }
+
+  /* overlay */
+  .overlay{
+    position:fixed; inset:0; display:flex;align-items:center;justify-content:center;
+    background: rgba(6,6,10,0.55); z-index:1000; backdrop-filter: blur(6px);
+    opacity:0; pointer-events:none; transition:opacity 220ms;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto }
+
+  /* WHITE popup card */
+  .popup{
+    width:var(--popup-w);
+    max-width:calc(100vw - 32px);
+    border-radius:12px;
+    padding:18px;
+    background:var(--popup-bg);
+    color:var(--popup-text);
+    border:1px solid rgba(11,12,14,0.06);
+    box-shadow: 0 28px 80px rgba(3,6,20,0.45);
+    transform:translateY(10px) scale(.98);
+    transition: transform 260ms cubic-bezier(.2,.9,.25,1), opacity 260ms;
+    opacity:0;
+    position:relative;
+  }
+  .overlay.show .popup{ opacity:1; transform:translateY(0) scale(1) }
+
+  .popup .head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px }
+  .popup h3{ margin:0; font-size:1.12rem; color:var(--popup-text) }
+  .popup p.sub{ margin:0; color:rgba(11,17,32,0.7); font-size:0.92rem }
+
+  .popup .message{ margin-top:8px; font-weight:800; color:#c5304b; font-size:1.05rem; display:flex; gap:8px; align-items:center }
+  .popup .heart-ico{ font-size:18px }
+  .popup .joke{ margin-top:10px; font-size:0.95rem; color:rgba(11,17,32,0.85) }
+
+  .popup .close{
+    background:transparent; border:1px solid rgba(11,12,14,0.06); padding:8px 10px; border-radius:10px; cursor:pointer; color:var(--popup-text);
+  }
+
+  .popup .burst-wrap{ position:relative; height:78px; margin-top:12px; overflow:visible; pointer-events:none }
+  .popup .heart{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:20px; opacity:0;
+    animation:popupBurst 900ms forwards cubic-bezier(.2,.9,.25,1);
+    text-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  }
+  @keyframes popupBurst {
+    0%{ transform:translate(-50%,-50%) scale(.6); opacity:1 }
+    50%{ transform:translate(-50%,-160%) scale(1.12); opacity:1 }
+    100%{ transform:translate(calc(-50% + var(--x,0)), calc(-50% - var(--y,120px))) scale(.85); opacity:0 }
+  }
+
+  .popup .dots { position:absolute; inset:0; pointer-events:none; }
+  .dot-small{ position:absolute; width:8px; height:8px; border-radius:4px; opacity:0; transform:translate(-50%,-50%); animation:dotpop 900ms forwards; }
+  @keyframes dotpop {
+    0%{ transform:translate(-50%,-50%) scale(0.2); opacity:1 }
+    60%{ transform:translate(calc(-50% + var(--dx,-20px)), calc(-50% - var(--dy,80px))) scale(1); opacity:1}
+    100%{ transform:translate(calc(-50% + var(--dx,-20px)), calc(-50% - var(--dy,120px))) scale(.6); opacity:0 }
+  }
+
+  .popup .meta{ display:flex; gap:8px; align-items:center; margin-top:12px; color:rgba(11,17,32,0.6); font-size:0.86rem }
+
+  .sr-only{ position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap }
+  @media (max-width:520px){
+    :root{ --size:98px; --gap:10px }
+    h1{font-size:1.15rem}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Valentine I love coding boxes">
+    <header>
+      <div>
+        <h1>Valentine Boxes — <span style="color:var(--accent)">I ❤️ Coding</span></h1>
+        <p class="lead">Click or press Enter on any heart to open a clear popup with message & a coder joke.</p>
+      </div>
+    </header>
+
+    <div class="toolbar" role="toolbar" aria-label="controls">
+      <button class="btn" id="openAll">Open All</button>
+      <button class="btn ghost" id="shuffle">Shuffle</button>
+      <button class="btn ghost" id="reset">Reset</button>
+      <button class="btn" id="surprise">Surprise Me</button>
+    </div>
+
+    <div class="grid" id="grid" aria-live="polite"></div>
+
+    <div style="text-align:center;margin-top:10px;color:rgba(255,255,255,0.68)">Tip: Press 1–12 to open boxes quickly. Press Esc to close popup.</div>
+  </div>
+
+  <!-- Overlay + Popup (white) -->
+  <div id="overlay" class="overlay" role="dialog" aria-hidden="true" aria-modal="true">
+    <div class="popup" role="document" aria-labelledby="popup-title">
+      <div class="head">
+        <div>
+          <h3 id="popup-title">Sweet message</h3>
+          <p class="sub" id="popup-sub">A little love for your code</p>
+        </div>
+        <div>
+          <button class="close" id="popup-close" aria-label="Close message">Close ✕</button>
+        </div>
+      </div>
+
+      <div class="message"><span class="heart-ico">❤️</span> <span id="popup-msg">I love coding</span></div>
+      <div class="burst-wrap" id="popup-burst" aria-hidden="true"></div>
+      <div class="joke" id="popup-joke">Joke will appear here.</div>
+
+      <div class="meta" id="popup-meta">
+        <div id="popup-source">From a secret valentine</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* white-popup version (same logic as before) */
+(function(){
+  const grid = document.getElementById('grid');
+  const overlay = document.getElementById('overlay');
+  const popupMsg = document.getElementById('popup-msg');
+  const popupJoke = document.getElementById('popup-joke');
+  const popupBurst = document.getElementById('popup-burst');
+  const popupClose = document.getElementById('popup-close');
+  const popupTitle = document.getElementById('popup-title');
+  const popupMeta = document.getElementById('popup-meta');
+
+  const openAllBtn = document.getElementById('openAll');
+  const shuffleBtn = document.getElementById('shuffle');
+  const resetBtn = document.getElementById('reset');
+  const surpriseBtn = document.getElementById('surprise');
+
+  const messages = [
+    "I love coding ❤️ — it’s my happy place!",
+    "I love coding — coffee + code = magic ☕💻",
+    "I love coding — bugs are just puzzles 🧩",
+    "I love coding — every error is a lesson ✨",
+    "I love coding — building tiny universes 🌌",
+    "I love coding — my heart runs on loops ♥️",
+    "I love coding — shipping beats perfect ✨",
+    "I love coding — semicolons and stardust ;)",
+    "I love coding — because logic can be poetic 🖋️"
+  ];
+
+  const jokes = [
+    "Why do programmers prefer dark mode? Because light attracts bugs!",
+    "Why did the developer go broke? Because he used up all his cache.",
+    "What do you call a programmer from Finland? Nerdic.",
+    "Why do Java developers wear glasses? Because they don't C#.",
+    "There are 10 types of people: those who understand binary and those who don't.",
+    "How do programmers cheer up? They use console.log('You rock!')",
+    "Why did the programmer quit his job? He didn't get arrays (a raise).",
+    "A SQL query walks into a bar, walks up to two tables and asks: 'Can I join you?'",
+    "I told my computer I needed a break, and it said: 'Error 404: Coffee not found.'"
+  ];
+
+  const faces = ['❤️','💌','🥰','😍','💖','💕','🌹','💘','✨','🧁','🎀','💝'];
+  const N = 12;
+  let order = Array.from({length:N}, (_,i)=>i);
+
+  function buildGrid(){
+    grid.innerHTML = '';
+    order.forEach((i) => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.setAttribute('tabindex','0');
+      box.setAttribute('role','button');
+      box.setAttribute('aria-pressed','false');
+      box.setAttribute('data-index', i);
+
+      const face = document.createElement('div');
+      face.className = 'emoji';
+      face.textContent = faces[i % faces.length];
+      box.appendChild(face);
+
+      const small = document.createElement('div');
+      small.className = 'small-hint';
+      small.textContent = `${i+1}`;
+      box.appendChild(small);
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = `Open me`;
+      box.appendChild(label);
+
+      box.addEventListener('click', ()=> handleOpen(i));
+      box.addEventListener('keydown', (e)=> {
+        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpen(i); }
+      });
+
+      grid.appendChild(box);
+    });
+  }
+
+  function showPopup(idx){
+    closePopup();
+
+    const msg = messages[idx % messages.length];
+    const jk = jokes[(idx + Math.floor(Math.random()*jokes.length)) % jokes.length];
+
+    popupMsg.textContent = msg;
+    popupJoke.textContent = jk;
+    popupTitle.textContent = `Message #${idx+1}`;
+    popupMeta.textContent = `Box ${idx+1} — coder valentine`;
+
+    popupBurst.innerHTML = '';
+    for(let i=0;i<10;i++){
+      const h = document.createElement('div');
+      h.className = 'heart';
+      h.textContent = ['❤️','💖','💘','💕'][i%4];
+      const x = (Math.random()*140 - 70) + 'px';
+      const y = (80 + Math.random()*180) + 'px';
+      h.style.setProperty('--x', x);
+      h.style.setProperty('--y', y);
+      h.style.animationDelay = (i*45) + 'ms';
+      popupBurst.appendChild(h);
+      setTimeout(()=> { if(h.parentNode) h.remove(); }, 1400 + i*45);
+    }
+    const colors = ['#ff4d6d','#ffb3c1','#ffd166','#ff6b6b'];
+    for(let i=0;i<12;i++){
+      const d = document.createElement('div');
+      d.className = 'dot-small';
+      d.style.left = (40 + Math.random()*20) + '%';
+      d.style.top = (40 + Math.random()*20) + '%';
+      d.style.background = colors[Math.floor(Math.random()*colors.length)];
+      d.style.setProperty('--dx', ((Math.random()*200)-100) + 'px');
+      d.style.setProperty('--dy', (60 + Math.random()*160) + 'px');
+      d.style.animationDelay = (i*30) + 'ms';
+      popupBurst.appendChild(d);
+      setTimeout(()=> { if(d.parentNode) d.remove(); }, 1500 + i*30);
+    }
+
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+    popupClose.focus();
+    window.addEventListener('keydown', escClose);
+  }
+
+  function escClose(e){
+    if(e.key === 'Escape') {
+      closePopup();
+      document.dispatchEvent(new Event('popupClosed'));
+    }
+  }
+
+  function closePopup(){
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+    popupBurst.innerHTML = '';
+    window.removeEventListener('keydown', escClose);
+    const first = document.querySelector('.box');
+    if(first) first.focus();
+  }
+
+  function handleOpen(idx){
+    showPopup(idx);
+  }
+
+  function surprise(){
+    const pick = Math.floor(Math.random()*N);
+    handleOpen(pick);
+  }
+
+  async function openAllSequential(){
+    for(let i=0;i<N;i++){
+      showPopup(i);
+      await waitForCloseOrTimeout(1300);
+    }
+  }
+
+  function waitForCloseOrTimeout(ms){
+    return new Promise(resolve=>{
+      let closed = false;
+      const onClose = ()=>{
+        if(closed) return;
+        closed = true;
+        cleanup();
+        resolve();
+      };
+      function cleanup(){ overlay.removeEventListener('transitionend', onClose); document.removeEventListener('popupClosed', onClose); }
+      document.addEventListener('popupClosed', onClose);
+      overlay.addEventListener('transitionend', onClose);
+      setTimeout(()=> {
+        if(closed) return;
+        closed = true;
+        closePopup();
+        cleanup();
+        resolve();
+      }, ms + 100);
+    });
+  }
+
+  function shuffleGrid(){
+    for(let i=order.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    buildGrid();
+  }
+
+  function resetAll(){
+    closePopup();
+    buildGrid();
+  }
+
+  openAllBtn.addEventListener('click', ()=> openAllSequential());
+  shuffleBtn.addEventListener('click', shuffleGrid);
+  resetBtn.addEventListener('click', resetAll);
+  surpriseBtn.addEventListener('click', surprise);
+
+  popupClose.addEventListener('click', ()=>{
+    closePopup();
+    document.dispatchEvent(new Event('popupClosed'));
+  });
+
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay) {
+      closePopup();
+      document.dispatchEvent(new Event('popupClosed'));
+    }
+  });
+
+  window.addEventListener('keydown', (e)=>{
+    if(e.key >= '1' && e.key <= String(N)) {
+      const idx = Number(e.key) - 1;
+      handleOpen(idx);
+    }
+  });
+
+  buildGrid();
+  window.__valentine = { handleOpen, showPopup, closePopup, resetAll, shuffleGrid, surprise };
+})();
+</script>
+</body>
+</html>
